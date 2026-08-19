@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  EMPLOYEE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  ON_LEAVE
+}
+
+model Company {
+  id          String   @id @default(uuid())
+  name        String
+  address     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isActive    Boolean  @default(true)
+
+  users       User[]
+  geofences   Geofence[]
+}
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  role           Role      @default(EMPLOYEE)
+  baseSalary     Float?    
+  profilePicUrl  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  companyId      String?   // SuperAdmin won't have a company
+  company        Company?  @relation(fields: [companyId], references: [id])
+
+  attendanceLogs AttendanceLog[]
+}
+
+model Geofence {
+  id          String   @id @default(uuid())
+  name        String   // e.g., "Main Office"
+  latitude    Float
+  longitude   Float
+  radiusMeters Float   // e.g., 100 meters
+  
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model AttendanceLog {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date           DateTime  @db.Date
+  checkInTime    DateTime?
+  checkOutTime   DateTime?
+  
+  checkInLat     Float?
+  checkInLng     Float?
+  checkOutLat    Float?
+  checkOutLng    Float?
+  
+  selfieUrl      String?   // URL to the S3 bucket image for liveness check
+  
+  status         AttendanceStatus @default(PRESENT)
+  isApproved     Boolean   @default(true) // For manual overrides
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, date]) // Ensure one record per user per day
+}
