@@ -6,10 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@prisma/client": "^7.9.1",
+    "@prisma/client": "^5.22.0",
     "bcrypt": "^6.0.0",
     "next": "16.3.1",
     "next-auth": "^4.24.15",
@@ -17,7 +18,9 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "prisma": "^5.22.0",
     "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
