@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { ActivityMap } from "@/components/dashboard/ActivityMap";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -12,6 +13,7 @@ export default async function DashboardPage() {
 
   // Example: Fetch some stats if they are a company admin
   let employeeCount = 0;
+  let recentLogs: any[] = [];
   
   if (session.user.role === "COMPANY_ADMIN" && session.user.companyId) {
     employeeCount = await prisma.user.count({
@@ -19,6 +21,24 @@ export default async function DashboardPage() {
         companyId: session.user.companyId,
         role: "EMPLOYEE"
       }
+    });
+
+    // Fetch today's check-ins to map them
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    recentLogs = await prisma.attendanceLog.findMany({
+      where: {
+        user: { companyId: session.user.companyId },
+        date: { gte: today }
+      },
+      include: {
+        user: true
+      },
+      orderBy: {
+        checkInTime: 'desc'
+      },
+      take: 50 // Limit to recent 50 for the map
     });
   }
 
@@ -47,12 +67,10 @@ export default async function DashboardPage() {
         </div>
       </div>
       
-      {/* Real-time map placeholder */}
-      <div className="mt-8">
+      {/* Real-time map */}
+      <div className="mt-8 relative z-0">
         <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Live Activity Map</h3>
-        <div className="h-96 w-full rounded-lg bg-gray-200 border border-gray-300 flex items-center justify-center">
-          <p className="text-gray-500">Map Integration (Leaflet/Google Maps) will load here</p>
-        </div>
+        <ActivityMap logs={recentLogs} />
       </div>
     </div>
   );
